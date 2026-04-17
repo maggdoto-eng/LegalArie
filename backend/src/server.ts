@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const jwt = require('jsonwebtoken');
+const { softDeleteMiddleware } = require('./middleware/softDelete');
 
 dotenv.config();
 
@@ -10,6 +11,25 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Request ID middleware (for tracking)
+app.use((req, res, next) => {
+  req.id = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  next();
+});
+
+// User mock middleware (simulates authenticated user)
+app.use((req, res, next) => {
+  req.user = {
+    id: 'demo-user-1',
+    role: 'partner',
+    email: 'owner@legalaarie.com',
+  };
+  next();
+});
+
+// Soft delete middleware (adds soft delete context to all requests)
+app.use(softDeleteMiddleware);
 
 // Health check
 app.get('/health', (req, res) => {
