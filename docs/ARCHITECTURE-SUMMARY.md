@@ -4,8 +4,8 @@
 
 LegalArie is a three-tier legal practice management system:
 - **Backend:** Node.js API + PostgreSQL database + Firebase real-time + AWS S3
-- **Frontend:** Single React app with role-based dashboards
-- **Mobile:** Flutter Android/iOS apps for clients & lawyers only
+- **Mobile App:** Flutter (Android + iOS) - Clients & Lawyers ONLY
+- **Web App:** React (Browser) - Owners/Partners/Admin Staff ONLY
 
 ---
 
@@ -15,8 +15,8 @@ LegalArie is a three-tier legal practice management system:
 
 **Primary Use Case:** Track case status, receive updates, upload documents, communicate with lawyers
 
-**Devices:**
-- ✅ Web Browser (desktop, tablet, phone) — Primary access
+**Platforms:**
+- ❌ Web Browser — NOT AVAILABLE
 - ✅ Android App (Flutter) — Phase 1 launch
 - ✅ iOS App (Flutter) — Phase 4 launch
 
@@ -37,12 +37,12 @@ LegalArie is a three-tier legal practice management system:
 
 **Primary Use Case:** Manage assigned cases, track tasks, upload documents, update status, message clients
 
-**Devices:**
-- ✅ Web Browser (desktop, laptop, tablet) — Primary access
+**Platforms:**
+- ❌ Web Browser — NOT AVAILABLE
 - ✅ Android App (Flutter) — Phase 1 launch
 - ✅ iOS App (Flutter) — Phase 4 launch
 
-**Dashboard Access:** `https://legalaarie.com/lawyer`
+**App Access:** Download from Google Play (Android) or App Store (iOS)
 
 **What Lawyers See:**
 - Cases assigned to them (filter by status)
@@ -56,16 +56,16 @@ LegalArie is a three-tier legal practice management system:
 
 ---
 
-### 3. OWNERS/PARTNERS/ADMINS (Management)
+### 3. OWNERS/PARTNERS/ADMIN STAFF (Management)
 
 **Primary Use Case:** Real-time business intelligence, partner performance tracking, revenue attribution, compensation management
 
-**Devices:**
-- ✅ Web Browser (Desktop/Laptop) — Management Dashboard
-- ❌ Android App — NOT available (internal tool only)
-- ❌ iOS App — NOT available (internal tool only)
+**Platforms:**
+- ✅ Web Browser (Desktop/Laptop) — Management Dashboard (PRIMARY)
+- ❌ Android App — NOT available (web-only tool)
+- ❌ iOS App — NOT available (web-only tool)
 
-**Dashboard Access:** `https://legalaarie.com/admin` (Private, password-protected)
+**Dashboard Access:** `https://legalaarie.com/admin` (Private, password-protected, browser-only)
 
 **What Owners See:**
 
@@ -107,51 +107,56 @@ LegalArie is a three-tier legal practice management system:
 ## Real-Time Data Flow
 
 ```
-┌─ LAWYERS (Web + Mobile) ──┐
-│                            │
-│  Updates case status       │
-│  Uploads document          │
-│  Sends message to client   │
-└────────────┬───────────────┘
-             │
-             ↓
-    ┌────────────────────┐
-    │  Backend API       │
-    │ (Node.js/Express)  │
-    │                    │
-    │ • Update DB        │
-    │ • Emit Socket.io   │
-    │ • Send Firebase    │
-    └────────────┬───────┘
-             ┌───┴────┬──────┐
-             ↓        ↓      ↓
-    ┌──────────┐  ┌──────┐  ┌──────────┐
-    │ CLIENTS  │  │ADMINS│  │DATABASE  │
-    │Web+Mobile│  │Web   │  │          │
-    │ Notified │  │View  │  │Updated   │
-    └──────────┘  └──────┘  └──────────┘
+┌─ MOBILE APP (Flutter) ──┐     ┌─ WEB APP (React) ──┐
+│ (Clients + Lawyers)     │     │ (Owners/Admins)    │
+│                         │     │                    │
+│ • Case status update    │     │ • View KPIs        │
+│ • Document upload       │     │ • Track revenue    │
+│ • Message client/lawyer │     │ • Manage partners  │
+└──────────┬──────────────┘     └─────────┬──────────┘
+           │                              │
+           └──────────────┬───────────────┘
+                          ↓
+                  ┌──────────────────┐
+                  │  Backend API     │
+                  │ (Node.js/Express)│
+                  │                  │
+                  │ • Update DB      │
+                  │ • Emit Socket.io │
+                  │ • Firebase msgs  │
+                  └────────┬─────────┘
+                           ↓
+          ┌────────────────┴────────────────┐
+          ↓                                 ↓
+    ┌──────────────┐              ┌──────────────┐
+    │ MOBILE APPS  │              │ WEB DASHBOARD│
+    │(Clients+     │              │(Owners/Admins│
+    │Lawyers)      │              │   Real-time) │
+    │ Real-time    │              │   Updates    │
+    │ Notified     │              └──────────────┘
+    └──────────────┘
 ```
 
 ---
 
 ## Phase Rollout Timeline
 
-| Phase | Timeline | Client App | Lawyer App | Owner Dashboard |
+| Phase | Timeline | Client Mobile App | Lawyer Mobile App | Admin Web Dashboard |
 |-------|----------|-----------|-----------|-----------------|
-| **Phase 1** | Weeks 1-4 | ✅ Web + Android | ✅ Web + Android | ❌ Not yet |
+| **Phase 1** | Weeks 1-4 | ✅ Android (Flutter) | ✅ Android (Flutter) | ❌ Not yet |
 | **Phase 2** | Weeks 5-8 | ✅ Enhanced | ✅ Enhanced | ✅ KPI Dashboard |
-| **Phase 3** | Weeks 9-12 | ✅ Full | ✅ Full | ✅ Full (Compensation) |
-| **Phase 4** | Month 4+ | ✅ iOS | ✅ iOS | ✅ SaaS Multi-Firm |
+| **Phase 3** | Weeks 9-12 | ✅ Full Feature | ✅ Full Feature | ✅ Full (Compensation) |
+| **Phase 4** | Month 4+ | ✅ iOS (Flutter) | ✅ iOS (Flutter) | ✅ SaaS Multi-Firm |
 
 ---
 
-## Device Summary Table
+## Platform Summary Table
 
-| User Type | Web Browser | Android App | iOS App | Desktop | Purpose |
-|-----------|-----------|-----------|---------|---------|---------|
-| **Clients** | ✅ Primary | ✅ Mobile (Phase 1) | ✅ (Phase 4) | Optional | Track cases, docs, messaging |
-| **Lawyers** | ✅ Primary | ✅ Mobile (Phase 1) | ✅ (Phase 4) | Optional | Manage cases, tasks, docs |
-| **Owners** | ✅ Primary | ❌ No | ❌ No | **Required** | Management dashboards only |
+| User Type | Web Browser | Android App | iOS App | Purpose |
+|-----------|-----------|-----------|---------|----------|
+| **Clients** | ❌ NO | ✅ Yes (Phase 1) | ✅ Yes (Phase 4) | Case tracking, docs, messaging |
+| **Lawyers** | ❌ NO | ✅ Yes (Phase 1) | ✅ Yes (Phase 4) | Case management, tasks, docs |
+| **Owners/Admins** | ✅ Yes (Only) | ❌ NO | ❌ NO | KPI dashboards, revenue tracking, management |
 
 ---
 
@@ -167,39 +172,69 @@ LegalArie is a three-tier legal practice management system:
 
 ---
 
-## Infrastructure (Unified Backend)
+## Infrastructure (Two-Platform Strategy)
 
-**One Backend, Three Frontend Views:**
-- Single Node.js API server
-- Single PostgreSQL database
-- Role-based access control (client sees only their cases, lawyers see assigned cases, admins see everything)
-- Firebase for real-time messaging/notifications
-- AWS S3 for document storage
-- Socket.io for live updates
+**Unified Backend Powers Both Apps:**
+- Single Node.js API server (Railway)
+- Single PostgreSQL database (Railway)
+- Role-based access control (client sees only their cases, lawyers see assigned cases, admins see all)
+- Firebase for real-time messaging/notifications (both web + mobile)
+- AWS S3 for document storage (presigned uploads)
+- Socket.io for live updates (web dashboard)
 
-**Single React App with Routes:**
-```
-/login                  → Authentication
-/client/*               → Client Portal
-/lawyer/*               → Lawyer Dashboard
-/admin/*                → Owner/Admin Dashboard (protected)
-```
+**React Web App (Admin/Management Only):**
+- Desktop browser-based internal management tool
+- Role-based dashboard for owners, partners, admin staff
+- Routes:
+  - `/admin/login` — Admin authentication
+  - `/admin/dashboard` — KPI dashboard (owners/admins)
+  - `/admin/revenue-attribution` — Revenue tracking & visualization
+  - `/admin/compensation` — Monthly bonus & appraisal calculation
+  - `/admin/crm` — CRM & prospect pipeline
+  - `/admin/users` — Team management & permissions
+  - `/admin/audit-logs` — Audit trail viewer
+
+**Flutter Mobile App (Clients + Lawyers - Field Workers):**
+- iOS & Android native apps
+- Public app on App Store & Google Play
+- Two separate login flows: Client vs Lawyer
+- Screens:
+  - `login_screen` — Client or Lawyer authentication
+  - `client_cases_home` — Client case list + detail
+  - `lawyer_dashboard` — Lawyer case management
+  - `messaging_screen` — Real-time client ↔ lawyer chat
+  - `document_viewer` — View/upload documents
+  - `calendar_screen` — Hearing dates & deadlines
+  - `task_screen` — Task tracking & action items
+  - `profile_screen` — User profile & settings
 
 ---
 
 ## Next Steps
 
-**Phase 1 (Week 1-4) Implementation:**
-1. Backend API foundation + authentication
-2. Client portal web interface
-3. Lawyer dashboard web interface
-4. Real-time messaging integration
-5. Android app deployment
-6. Load testing & optimization
+**Phase 1 (Weeks 1-4) Implementation - MOBILE FIRST:**
+1. Backend API foundation + authentication (JWT, roles)
+2. Flutter mobile app: Client login & case dashboard (Android)
+3. Flutter mobile app: Lawyer login & case management (Android)
+4. Real-time messaging integration (Firebase + Socket.io)
+5. Document upload to S3 (Flutter)
+6. Android app deployment to Google Play (internal testing)
 
-**Phase 2 (Week 5-8):** Owner dashboard with KPIs + revenue attribution engine
+**Phase 2 (Weeks 5-8):** React web dashboard for owners + revenue attribution engine
 
-**Phase 3 (Week 9-12):** Billing, HR, compensation modules
+**Phase 3 (Weeks 9-12):** Billing, HR, compensation modules (web + mobile enhancements)
+
+**Phase 4 (Month 4+):** iOS apps + Multi-tenant SaaS
 
 ---
+
+## Key Difference from Clio
+
+Clio is desktop/browser-first. **LegalArie is mobile-first** for field workers (clients & lawyers) and browser-based for management (owners). This is better because:
+
+- ✅ Clients get real-time updates on phone (primary demand)
+- ✅ Lawyers manage cases on mobile (field workers need mobility)
+- ✅ Owners get desktop-based management tools (strategic work)
+- ✅ Faster mobile development (Flutter for both platforms)
+- ✅ Simpler web app (management only, not public-facing)
 
