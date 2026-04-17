@@ -1,19 +1,18 @@
-import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
-const app: Express = express();
+const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Health check
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
     timestamp: new Date().toISOString(),
@@ -31,7 +30,7 @@ const DEMO_USER = {
 };
 
 // Simple login endpoint
-app.post('/api/auth/login', async (req: Request, res: Response) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -88,18 +87,18 @@ app.post('/api/auth/login', async (req: Request, res: Response) => {
 });
 
 // API Routes
-app.get('/api/test', (req: Request, res: Response) => {
+app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
 });
 
 // Error handler
-app.use((err: any, req: Request, res: Response) => {
+app.use((err, req, res) => {
   console.error('Error:', err);
   res.status(500).json({ error: err.message });
 });
 
 // 404 handler
-app.use((req: Request, res: Response) => {
+app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
@@ -110,4 +109,4 @@ app.listen(PORT, () => {
   console.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-export default app;
+module.exports = app;
