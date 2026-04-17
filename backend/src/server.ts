@@ -91,15 +91,15 @@ app.get('/api/test', (req, res) => {
   res.json({ message: 'Backend is working!' });
 });
 
-// Error handler
-app.use((err, req, res) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: err.message });
-});
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
+});
+
+// Error handler (MUST be last - needs 4 params to be recognized as error handler)
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
 // Start server
