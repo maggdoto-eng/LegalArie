@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader } from 'lucide-react';
+import apiService from '../services/api';
 
 /**
  * Login Page - Web Admin Dashboard
  * For firm owners/partners to log in
+ * Connected to backend authentication API
  */
 
 export default function LoginPage() {
@@ -12,6 +15,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,23 +23,38 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // API call will go here
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await response.json();
-      // Store token, redirect to dashboard
+      const result = await apiService.login(email, password);
+      
+      if (result) {
+        // Login successful, redirect to dashboard
+        navigate('/dashboard');
+      } else {
+        setError('Invalid email or password');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to login. Please try again.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Mock success
-      setTimeout(() => {
-        console.log('Login attempt:', { email, password });
-        setIsLoading(false);
-        // Redirect to dashboard
-      }, 1000);
-    } catch (err) {
-      setError('Invalid email or password');
+  const handleDemoLogin = async () => {
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const result = await apiService.login('owner@legalaarie.com', 'Demo@123456');
+      
+      if (result) {
+        navigate('/dashboard');
+      } else {
+        setError('Demo credentials not found. Please contact support.');
+      }
+    } catch (err: any) {
+      setError('Failed to login with demo account');
+      console.error('Demo login error:', err);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -78,6 +97,7 @@ export default function LoginPage() {
                   placeholder="owner@lawfirm.com"
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -97,11 +117,13 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -111,10 +133,10 @@ export default function LoginPage() {
             {/* Remember Me */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300" disabled={isLoading} />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-blue-600 hover:underline">
+              <a href="#forgot-password" className="text-sm text-blue-600 hover:underline">
                 Forgot password?
               </a>
             </div>
@@ -123,17 +145,33 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 rounded-lg transition-colors mt-6"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 rounded-lg transition-colors mt-6 flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </form>
+
+          {/* Demo Login */}
+          <button
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            className="w-full mt-4 bg-gray-100 hover:bg-gray-200 disabled:bg-gray-100 text-gray-800 font-medium py-2 rounded-lg transition-colors border border-gray-300"
+          >
+            Try Demo Account
+          </button>
 
           {/* Footer */}
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <a href="#" className="text-blue-600 hover:underline font-medium">
+              <a href="#contact" className="text-blue-600 hover:underline font-medium">
                 Contact your firm owner
               </a>
             </p>
@@ -142,11 +180,12 @@ export default function LoginPage() {
 
         {/* Demo Credentials */}
         <div className="mt-6 bg-blue-50 rounded-lg p-4 text-sm text-blue-900">
-          <p className="font-medium mb-2">Demo Credentials:</p>
-          <p>Email: owner@legalaarie.com</p>
-          <p>Password: Demo@123456</p>
+          <p className="font-medium mb-2">🔐 Demo Credentials:</p>
+          <p className="font-mono text-xs">Email: owner@legalaarie.com</p>
+          <p className="font-mono text-xs">Password: Demo@123456</p>
         </div>
       </div>
     </div>
   );
 }
+
