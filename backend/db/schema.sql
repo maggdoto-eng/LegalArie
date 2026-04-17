@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS firms (
 
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
+  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE RESTRICT,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   role ENUM('client', 'lawyer', 'partner', 'admin', 'support') NOT NULL DEFAULT 'lawyer',
@@ -32,10 +32,13 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT,
   is_active BOOLEAN DEFAULT TRUE,
   last_login TIMESTAMP,
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(firm_id, email)
 );
+
+CREATE INDEX idx_users_firm_id_deleted_at ON users(firm_id, deleted_at);
 
 -- ============================================
 -- 2. CLIENTS & CASES
@@ -43,27 +46,30 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS clients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
+  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE RESTRICT,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
   phone VARCHAR(20),
   company_name VARCHAR(255),
   practice_area VARCHAR(100),
   retainer_status ENUM('prospect', 'active', 'retained', 'closed') DEFAULT 'prospect',
-  relationship_owner_id UUID REFERENCES users(id),
+  relationship_owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
   notes TEXT,
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(firm_id, email)
 );
 
+CREATE INDEX idx_clients_firm_id_deleted_at ON clients(firm_id, deleted_at);
+
 CREATE TABLE IF NOT EXISTS cases (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE CASCADE,
+  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE RESTRICT,
   case_number VARCHAR(100) NOT NULL,
   title VARCHAR(500) NOT NULL,
   client_id UUID NOT NULL REFERENCES clients(id) ON DELETE RESTRICT,
-  assigned_lawyer_id UUID NOT NULL REFERENCES users(id),
+  assigned_lawyer_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   status ENUM('open', 'active', 'hearing_scheduled', 'judgment_awaited', 'closed') DEFAULT 'open',
   priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
   case_type VARCHAR(100),
@@ -72,17 +78,21 @@ CREATE TABLE IF NOT EXISTS cases (
   description TEXT,
   court_name VARCHAR(255),
   judge_name VARCHAR(255),
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(firm_id, case_number)
 );
 
+CREATE INDEX idx_cases_firm_id_deleted_at ON cases(firm_id, deleted_at);
+
 -- Link multiple lawyers to a case
 CREATE TABLE IF NOT EXISTS case_team (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
-  lawyer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE RESTRICT,
+  lawyer_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   role VARCHAR(100) DEFAULT 'assigned_lawyer',
+  deleted_at TIMESTAMP DEFAULT NULL,
   joined_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(case_id, lawyer_id)
 );
@@ -93,14 +103,15 @@ CREATE TABLE IF NOT EXISTS case_team (
 
 CREATE TABLE IF NOT EXISTS tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE RESTRICT,
   title VARCHAR(500) NOT NULL,
   description TEXT,
-  assigned_to_user_id UUID REFERENCES users(id),
+  assigned_to_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   status ENUM('open', 'in_progress', 'completed', 'cancelled') DEFAULT 'open',
   priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
   due_date DATE,
-  created_by_id UUID NOT NULL REFERENCES users(id),
+  created_by_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   completed_at TIMESTAMP
 );
@@ -111,11 +122,12 @@ CREATE TABLE IF NOT EXISTS tasks (
 
 CREATE TABLE IF NOT EXISTS messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sender_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   case_id UUID REFERENCES cases(id) ON DELETE SET NULL,
   content TEXT NOT NULL,
   is_encrypted BOOLEAN DEFAULT FALSE,
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   read_at TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -131,17 +143,18 @@ CREATE INDEX idx_messages_recipient_id ON messages(recipient_id);
 
 CREATE TABLE IF NOT EXISTS documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE RESTRICT,
   file_name VARCHAR(500) NOT NULL,
   s3_file_id VARCHAR(500) NOT NULL UNIQUE,
   s3_url VARCHAR(1000) NOT NULL,
   file_type VARCHAR(50),
   file_size_bytes BIGINT,
-  uploaded_by_id UUID NOT NULL REFERENCES users(id),
+  uploaded_by_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   document_type VARCHAR(100),
   visible_to_client BOOLEAN DEFAULT FALSE,
   is_redacted BOOLEAN DEFAULT FALSE,
   version INTEGER DEFAULT 1,
+  deleted_at TIMESTAMP DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -266,3 +279,47 @@ FROM users u
 LEFT JOIN cases c ON u.id = c.assigned_lawyer_id
 WHERE u.role = 'lawyer'
 GROUP BY u.id, u.full_name;
+
+-- ============================================
+-- 9. IDEMPOTENCY KEYS (For Financial Operations)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  firm_id UUID NOT NULL REFERENCES firms(id) ON DELETE RESTRICT,
+  idempotency_key VARCHAR(255) NOT NULL UNIQUE,
+  request_path VARCHAR(500) NOT NULL,
+  request_method VARCHAR(10) NOT NULL,
+  response_status INTEGER,
+  response_body JSONB,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL DEFAULT (CURRENT_TIMESTAMP + INTERVAL '24 hours')
+);
+
+CREATE INDEX idx_idempotency_keys_user_id ON idempotency_keys(user_id);
+CREATE INDEX idx_idempotency_keys_firm_id ON idempotency_keys(firm_id);
+CREATE INDEX idx_idempotency_keys_expires_at ON idempotency_keys(expires_at);
+
+-- ============================================
+-- 10. REQUEST TRACING (For Observability)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS request_traces (
+  id BIGSERIAL PRIMARY KEY,
+  trace_id VARCHAR(50) NOT NULL,
+  span_id VARCHAR(50) NOT NULL,
+  user_id UUID REFERENCES users(id),
+  firm_id UUID REFERENCES firms(id),
+  method VARCHAR(10),
+  endpoint VARCHAR(500),
+  status_code INTEGER,
+  response_time_ms INTEGER,
+  error_message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_request_traces_trace_id ON request_traces(trace_id);
+CREATE INDEX idx_request_traces_firm_id ON request_traces(firm_id);
+CREATE INDEX idx_request_traces_created_at ON request_traces(created_at);
+CREATE INDEX idx_request_traces_status_code ON request_traces(status_code);
