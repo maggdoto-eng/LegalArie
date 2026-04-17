@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextlewareError } from 'express';
+import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { Server as SocketIOServer } from 'socket.io';
 import http from 'http';
@@ -6,14 +6,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Import routes (to be created)
-// import authRoutes from './routes/auth.js';
-// import userRoutes from './routes/users.js';
+// Import routes
+import authRoutes from './routes/auth';
+import casesRoutes from './routes/cases';
+import tasksRoutes from './routes/tasks';
+import timeEntriesRoutes from './routes/timeEntries';
+import dashboardRoutes from './routes/dashboard';
 
 // Import middleware
-// import { authMiddleware } from './middleware/auth.js';
-// import { auditMiddleware } from './middleware/audit.js';
-// import { errorHandler } from './middleware/errorHandler.js';
+import { verifyToken } from './routes/auth';
 
 const app: Express = express();
 const server = http.createServer(app);
@@ -39,9 +40,12 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API Routes (to be implemented)
-// app.use('/api/auth', authRoutes);
-// app.use('/api/users', authMiddleware, userRoutes);
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/cases', verifyToken, casesRoutes);
+app.use('/api/tasks', verifyToken, tasksRoutes);
+app.use('/api/time-entries', verifyToken, timeEntriesRoutes);
+app.use('/api/dashboard', verifyToken, dashboardRoutes);
 
 // Socket.io Real-Time Events (to be implemented)
 io.on('connection', (socket) => {
@@ -56,8 +60,20 @@ io.on('connection', (socket) => {
   });
 });
 
-// Error handler middleware (to be implemented)
-// app.use(errorHandler);
+// Error handler middleware
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  
+  res.status(err.status || 500).json({
+    success: false,
+    data: null,
+    error: {
+      code: err.code || 'SERVER_ERROR',
+      message: err.message || 'Internal server error',
+      status: err.status || 500,
+    },
+  });
+});
 
 // 404 handler
 app.use((req: Request, res: Response) => {
