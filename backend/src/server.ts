@@ -96,68 +96,70 @@ app.get('/api/dashboard/metrics', (req, res) => {
   res.json({
     success: true,
     data: {
-      kpis: {
-        totalRevenue: '5000000',
-        monthlyRevenue: '425000',
-        activeCases: 47,
-        totalLawyers: 12,
-        avgUtilization: 78,
-        revenueGrowth: '12.5',
-        caseGrowth: '8.3'
-      },
-      charts: {
-        revenueTrend: [
-          { month: '2026-01-01', actual: '385000', target: '400000' },
-          { month: '2026-02-01', actual: '405000', target: '400000' },
-          { month: '2026-03-01', actual: '425000', target: '420000' }
+      data: {
+        kpis: {
+          totalRevenue: '5000000',
+          monthlyRevenue: '425000',
+          activeCases: 47,
+          totalLawyers: 12,
+          avgUtilization: 78,
+          revenueGrowth: '12.5',
+          caseGrowth: '8.3'
+        },
+        charts: {
+          revenueTrend: [
+            { month: '2026-01-01', actual: '385000', target: '400000' },
+            { month: '2026-02-01', actual: '405000', target: '400000' },
+            { month: '2026-03-01', actual: '425000', target: '420000' }
+          ],
+          caseDistribution: [
+            { status: 'open', count: 15 },
+            { status: 'active', count: 22 },
+            { status: 'hearing_scheduled', count: 7 },
+            { status: 'closed', count: 3 }
+          ]
+        },
+        lawyerPerformance: [
+          {
+            id: 'lawyer-1',
+            name: 'Ahmed Khan',
+            activeCases: 8,
+            billableHours: '320',
+            revenue: '425000',
+            utilization: 85
+          },
+          {
+            id: 'lawyer-2',
+            name: 'Fatima Ali',
+            activeCases: 6,
+            billableHours: '280',
+            revenue: '375000',
+            utilization: 78
+          }
         ],
-        caseDistribution: [
-          { status: 'open', count: 15 },
-          { status: 'active', count: 22 },
-          { status: 'hearing_scheduled', count: 7 },
-          { status: 'closed', count: 3 }
+        topCases: [
+          {
+            id: 'case-1',
+            caseNumber: 'CIV-2026-001',
+            title: 'Corporate Merger',
+            clientName: 'Tech Corp',
+            lawyerName: 'Ahmed Khan',
+            status: 'active',
+            priority: 'high',
+            revenue: '125000'
+          },
+          {
+            id: 'case-2',
+            caseNumber: 'CIV-2026-002',
+            title: 'Property Dispute',
+            clientName: 'Real Estate Ltd',
+            lawyerName: 'Fatima Ali',
+            status: 'hearing_scheduled',
+            priority: 'high',
+            revenue: '95000'
+          }
         ]
-      },
-      lawyerPerformance: [
-        {
-          id: 'lawyer-1',
-          name: 'Ahmed Khan',
-          activeCases: 8,
-          billableHours: '320',
-          revenue: '425000',
-          utilization: 85
-        },
-        {
-          id: 'lawyer-2',
-          name: 'Fatima Ali',
-          activeCases: 6,
-          billableHours: '280',
-          revenue: '375000',
-          utilization: 78
-        }
-      ],
-      topCases: [
-        {
-          id: 'case-1',
-          caseNumber: 'CIV-2026-001',
-          title: 'Corporate Merger',
-          clientName: 'Tech Corp',
-          lawyerName: 'Ahmed Khan',
-          status: 'active',
-          priority: 'high',
-          revenue: '125000'
-        },
-        {
-          id: 'case-2',
-          caseNumber: 'CIV-2026-002',
-          title: 'Property Dispute',
-          clientName: 'Real Estate Ltd',
-          lawyerName: 'Fatima Ali',
-          status: 'hearing_scheduled',
-          priority: 'high',
-          revenue: '95000'
-        }
-      ]
+      }
     }
   });
 });
